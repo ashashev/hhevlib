@@ -8,6 +8,9 @@
 
 #include <tuple>
 
+namespace hhev
+{
+
 namespace params_setters
 {
 
@@ -83,5 +86,7 @@ void applySetters(O* o, Setter&& setter, Setters&& ... setters)
 }
 
 } /* namespace params_setters */
+
+} /* namespace hhev */
 
 #endif //!__PARAMS_SETTERS_HPP__
