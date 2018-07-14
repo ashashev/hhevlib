@@ -26,7 +26,9 @@ public:
     class Setter
     {
     public:
-        Setter(MPtr ptr, std::tuple<Args&&...>&& args)
+        using TupleArgs = std::tuple<Args...>;
+
+        Setter(MPtr ptr, TupleArgs&& args)
             : ptr_(ptr)
             , args_(std::move(args))
         {}
@@ -43,26 +45,40 @@ public:
         }
 
         MPtr ptr_;
-        std::tuple<Args&&...> args_;
+        TupleArgs args_;
     };
 
     SetterFactory(MPtr ptr)
         : ptr_(ptr)
     {}
 
-    Setter operator=(std::tuple<Args&& ...>&& args) const
+    Setter operator=(typename Setter::TupleArgs&& args) const
     {
         return Setter(ptr_, std::move(args));
     }
 
-    template<typename T>
-    Setter operator=(T&& v) const
+    Setter operator=(std::tuple_element_t<0, typename Setter::TupleArgs> v) const
     {
-        return Setter(ptr_, std::forward_as_tuple(std::forward<T>(v)));
+        return Setter(ptr_, std::forward_as_tuple(v));
     }
 
 private:
     const MPtr ptr_;
+};
+
+template<typename T>
+struct Setter;
+
+template<typename R, typename O, typename ... Args>
+struct Setter<R (O::*) (Args ...)>
+{
+    using Type = typename details::SetterFactory<O, R, Args...>::Setter;
+};
+
+template<typename R, typename O, typename ... Args>
+struct Setter<R (O::*) (Args ...) const>
+{
+    using Type = typename details::SetterFactory<O, R, Args...>::Setter;
 };
 
 } /* namespace details */
@@ -84,6 +100,9 @@ void applySetters(O* o, Setter&& setter, Setters&& ... setters)
     std::forward<Setter>(setter)(o);
     applySetters(o, std::forward<Setters>(setters)...);
 }
+
+template<typename T>
+using Setter = typename details::Setter<T>::Type;
 
 } /* namespace params_setters */
 
